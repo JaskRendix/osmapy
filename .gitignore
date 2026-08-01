@@ -1,0 +1,30 @@
+# Bytecode
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Coverage / pytest
+.coverage
+.pytest_cache/
+
+# Local config
+config.yaml
+
+# Tile cache
+cache/
+
+# Editor / IDE
+.idea/
+.vscode/
+
+# OS-specific
+.DS_Store
