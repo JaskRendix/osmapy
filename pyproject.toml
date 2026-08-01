@@ -45,7 +45,7 @@ include = ["osmapy*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-osmapy = ["assets/**/*"]
+osmapy = ["assets/**/*", "config.yaml"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=osmapy --cov-report=term-missing"

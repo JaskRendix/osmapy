@@ -1,0 +1,22 @@
+osm_api_url: https://api.openstreetmap.org
+# Please use the sandbox API for development and testing:
+# osm_api_url: https://master.apis.dev.openstreetmap.org
+
+user_agent: Python Editor v0.1
+
+window_size: [800, 512]
+
+start_latitude: 52.518
+start_longitude: 13.408
+start_zoom: 5
+
+login_name: OMS_USER
+password:
+
+slippy_tiles:
+  - name: OpenStreetMap
+    enabled: true
+    urls:
+      - http://a.tile.openstreetmap.org/${zoom}/${int_xtile}/${int_ytile}.png
+      - http://b.tile.openstreetmap.org/${zoom}/${int_xtile}/${int_ytile}.png
+      - http://c.tile.openstreetmap.org/${zoom}/${int_xtile}/${int_ytile}.png

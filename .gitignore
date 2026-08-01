@@ -16,9 +16,6 @@ dist/
 .coverage
 .pytest_cache/
 
-# Local config
-config.yaml
-
 # Tile cache
 cache/
 
