@@ -1,3 +1,5 @@
+from typing import Any
+
 import lxml.etree as ET
 import requests
 
@@ -9,22 +11,28 @@ config = load_config()
 class Changeset:
     """Represent a changeset. Create it and send it to the server."""
 
-    def __init__(self, parent):
-        self.parent = parent
-        self.osm_api_url = config.osm_api_url
+    def __init__(self, parent: Any) -> None:
+        self.parent: Any = parent
+        self.osm_api_url: str = config.osm_api_url
 
-        self.headers = {
+        self.headers: dict[str, str] = {
             "User-Agent": config.user_agent,
             "Content-Type": "application/xml",
         }
+        self.username: str = ""
+        self.password: str = ""
+        self.changeset_id: int = 0
 
-    def submit(self, comment, username, password):
+    def submit(self, comment: str, username: str, password: str) -> int:
         """Submit the changeset to the server.
 
         Args:
             comment (str): comment of this changeset
             username (str): users username
             password (str): users password
+
+        Returns:
+            int: final HTTP status code
         """
         self.username = username
         self.password = password
@@ -48,14 +56,14 @@ class Changeset:
 
         return status_code
 
-    def create_changeset(self, comment):
+    def create_changeset(self, comment: str) -> int:
         """Ask server to create a changeset.
 
         Args:
             comment (str): comment for this changeset
 
         Returns:
-            http status code of the response
+            int: http status code of the response
         """
         root = ET.Element("osm")
         changeset = ET.SubElement(root, "changeset")
@@ -73,8 +81,8 @@ class Changeset:
             self.changeset_id = int(result.text)
         return result.status_code
 
-    def create_osmChange(self, changeset_id):
-        """Create a osmChange XML file which describes the changes which where perfromed by the user.
+    def create_osmChange(self, changeset_id: int) -> ET.ElementTree:
+        """Create a osmChange XML file which describes the changes which where performed by the user.
 
         Args:
             changeset_id (int): number of the changeset declared by the server
@@ -118,14 +126,14 @@ class Changeset:
 
         return tree
 
-    def upload_diff(self, osm_change):
+    def upload_diff(self, osm_change: bytes) -> int:
         """Upload osmChange file to the server
 
         Args:
-            osm_change (str): xml as a string
+            osm_change (bytes): xml data as bytes
 
         Returns:
-            http status code of the response
+            int: http status code of the response
         """
         request = f"{config.osm_api_url}/api/0.6/changeset/{self.changeset_id}/upload"
         result = requests.post(
@@ -136,11 +144,11 @@ class Changeset:
         )
         return result.status_code
 
-    def close(self):
+    def close(self) -> int:
         """Close the changeset to finish the editing
 
         Returns:
-            http status code of the response
+            int: http status code of the response
         """
         request = f"{config.osm_api_url}/api/0.6/changeset/{self.changeset_id}/close"
         result = requests.put(

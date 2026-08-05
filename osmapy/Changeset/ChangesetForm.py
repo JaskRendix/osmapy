@@ -1,3 +1,5 @@
+from typing import Any
+
 import lxml.etree as ET
 from PySide6.QtWidgets import (
     QDialog,
@@ -15,11 +17,13 @@ config = load_config()
 
 
 class ChangesetForm(QDialog):
-    def __init__(self, parent):
-        super(ChangesetForm, self).__init__()
-        self.parent = parent
+    """Dialog form to handle changeset commentary, authentication, and submission."""
 
-        self.status_codes = {
+    def __init__(self, parent: Any) -> None:
+        super(ChangesetForm, self).__init__()
+        self.parent: Any = parent
+
+        self.status_codes: dict[int, str] = {
             200: "Success",
             400: "Bad request",
             401: "Login was unsuccessful",
@@ -29,7 +33,11 @@ class ChangesetForm(QDialog):
             409: "Conflict",
         }
 
-    def show(self):
+        self.comment: QLineEdit = QLineEdit()
+        self.username: QLineEdit = QLineEdit()
+        self.password: QLineEdit = QLineEdit()
+
+    def show(self) -> None:
         # reset layout
         if self.layout() is not None:
             QDialog().setLayout(self.layout())
@@ -80,7 +88,7 @@ class ChangesetForm(QDialog):
         button.clicked.connect(self.click)
         super().show()
 
-    def click(self):
+    def click(self) -> None:
         if self.username.text() == "":
             box = QMessageBox()
             box.setText("Please enter your username!")

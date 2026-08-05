@@ -1,12 +1,21 @@
 import json
 import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from osmapy.ElementsLoader.Node import Node
+    from osmapy.ElementsLoader.Relation import Relation
+    from osmapy.ElementsLoader.Way import Way
+
+    ElementType = Node | Way | Relation
 
 
 class Exporter:
     """Utility to export loaded elements to various formats."""
 
     @staticmethod
-    def export_to_osm(filepath, elements):
+    def export_to_osm(filepath: str, elements: dict[Any, "ElementType"]) -> None:
+        """Export elements to an OSM XML file."""
         osm = ET.Element("osm", version="0.6", generator="osmapy")
 
         for elem in elements.values():
@@ -67,9 +76,8 @@ class Exporter:
         tree.write(filepath, encoding="utf-8", xml_declaration=True)
 
     @staticmethod
-    def export_to_gpx(filepath, elements):
+    def export_to_gpx(filepath: str, elements: dict[Any, "ElementType"]) -> None:
         """Export nodes and ways to GPX (tracks + waypoints)."""
-
         gpx = ET.Element(
             "gpx",
             version="1.1",
@@ -116,16 +124,15 @@ class Exporter:
         tree.write(filepath, encoding="utf-8", xml_declaration=True)
 
     @staticmethod
-    def export_to_geojson(filepath, elements):
+    def export_to_geojson(filepath: str, elements: dict[Any, "ElementType"]) -> None:
         """Export nodes, ways, relations to GeoJSON FeatureCollection."""
-
-        features = []
+        features: list[dict[str, Any]] = []
 
         for elem in elements.values():
             data = elem.data
             elem_type = data.get("type")
 
-            # Node → Point
+            # Node -> Point
             if elem_type == "node":
                 features.append(
                     {
@@ -138,7 +145,7 @@ class Exporter:
                     }
                 )
 
-            # Way → LineString
+            # Way -> LineString
             elif elem_type == "way":
                 coords = []
                 for n_id in data.get("nodes", []):
@@ -155,7 +162,7 @@ class Exporter:
                     }
                 )
 
-            # Relation → MultiLineString or MultiPoint (simple fallback)
+            # Relation -> MultiLineString or MultiPoint (simple fallback)
             elif elem_type == "relation":
                 members = []
                 for member in data.get("members", []):

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
     QToolBar,
+    QUndoView,
 )
 
 from osmapy.Changeset.Changeset import Changeset
@@ -29,7 +30,7 @@ from osmapy.Viewer.Viewer import Viewer
 class Main(QMainWindow):
     """MainWindow which contains all widgets of Osmapy."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QMainWindow | None = None) -> None:
         super(Main, self).__init__(parent)
         self.config = load_config()
         self.setWindowTitle("Osmapy")
@@ -60,7 +61,7 @@ class Main(QMainWindow):
         self.dock_layer_manager.setWindowTitle("Layer Manager")
         self.dock_layer_manager.setFeatures(
             QDockWidget.DockWidgetFeature.DockWidgetFloatable
-            | QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetMovable
         )
         self.dock_layer_manager.setWidget(self.layer_manager)
         self.addDockWidget(
@@ -72,8 +73,17 @@ class Main(QMainWindow):
         self.viewer.setFocus()
         self.viewer.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
 
+        self.undo_view = QUndoView(self.viewer.undo_stack)
+        self.dock_undo = QDockWidget("Undo History", self)
+        self.dock_undo.setFeatures(
+            QDockWidget.DockWidgetFeature.DockWidgetFloatable
+            | QDockWidget.DockWidgetMovable
+        )
+        self.dock_undo.setWidget(self.undo_view)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock_undo)
+
         self.changeset = Changeset(self)
-        self.changset_form = ChangesetForm(self)
+        self.changeset_form = ChangesetForm(self)
 
         # Create actions first so they can be shared between Menu Bar and Tool Bar
         self.init_actions()
@@ -82,7 +92,7 @@ class Main(QMainWindow):
 
         self.statusBar().showMessage("Welcome to Osmapy!")
 
-    def init_actions(self):
+    def init_actions(self) -> None:
         """Initialize core application actions."""
         self.load_action = QAction("Load Elements", self)
         self.load_action.triggered.connect(self.viewer.load_elements)
@@ -117,7 +127,7 @@ class Main(QMainWindow):
         self.shortcuts_action.triggered.connect(self.show_shortcuts)
 
         self.upload_action = QAction("Upload Changes", self)
-        self.upload_action.triggered.connect(self.changset_form.show)
+        self.upload_action.triggered.connect(self.changeset_form.show)
 
         if os.name == "nt":
             config_func = partial(os.startfile, str(self.config.path_config))
@@ -132,7 +142,7 @@ class Main(QMainWindow):
         self.exit_action = QAction("Exit", self)
         self.exit_action.triggered.connect(self.close)
 
-    def init_menu_bar(self):
+    def init_menu_bar(self) -> None:
         """Organize clean dropdown categories in the Menu Bar."""
         menubar = self.menuBar()
 
@@ -164,7 +174,7 @@ class Main(QMainWindow):
         help_menu = menubar.addMenu("&Help")
         help_menu.addAction(self.shortcuts_action)
 
-    def init_tool_bar(self):
+    def init_tool_bar(self) -> None:
         """Keep the primary toolbar clean and focused."""
         self.toolbar = QToolBar("Main Toolbar")
         self.toolbar.addAction(self.load_action)
@@ -176,7 +186,7 @@ class Main(QMainWindow):
         self.toolbar.addAction(self.upload_action)
         self.addToolBar(self.toolbar)
 
-    def export_elements(self):
+    def export_elements(self) -> None:
         """Open a file dialog to save currently loaded elements in various formats."""
         filepath, _ = QFileDialog.getSaveFileName(
             self,
@@ -210,13 +220,13 @@ class Main(QMainWindow):
 
         self.statusBar().showMessage(f"Successfully exported {fmt} to {filepath}", 5000)
 
-    def show_shortcuts(self):
+    def show_shortcuts(self) -> None:
         """Open the keyboard shortcuts reference dialog."""
         dialog = ShortcutDialog(self)
         dialog.exec()
 
 
-def main():
+def main() -> None:
     # Starting point of Osmapy
     app = QApplication(sys.argv)
     app.setApplicationName("Osmapy")

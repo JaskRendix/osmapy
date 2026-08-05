@@ -121,8 +121,8 @@ def test_delete_node(element_viewer, sample_node):
     ][0]
     delete_btn.click()
 
-    assert sample_node.id not in element_viewer.parent.elements_loader.elements
-    assert element_viewer.parent.elements_loader.selected_node is None
+    assert sample_node.id not in element_viewer.parent_widget.elements_loader.elements
+    assert element_viewer.parent_widget.elements_loader.selected_node is None
 
 
 def test_tags_are_sorted(element_viewer):

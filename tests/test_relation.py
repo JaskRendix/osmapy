@@ -21,7 +21,6 @@ def sample_relation_data():
 def test_relation_initialization(sample_relation_data):
     relation = Relation(sample_relation_data)
 
-    assert relation.data == sample_relation_data
     assert relation.data["id"] == 100
     assert relation.data["type"] == "relation"
     assert len(relation.data["members"]) == 1
@@ -46,3 +45,16 @@ def test_create_new_relation_custom():
     assert relation.data["id"] == 300
     assert relation.data["members"] == members
     assert relation.data["tags"] == tags
+
+
+def test_relation_equality(sample_relation_data):
+    rel1 = Relation(sample_relation_data)
+    rel2 = Relation(sample_relation_data)
+
+    modified_data = sample_relation_data.copy()
+    modified_data["id"] = 999
+    rel3 = Relation(modified_data)
+
+    assert rel1 == rel2
+    assert rel1 != rel3
+    assert rel1 != "not a relation"

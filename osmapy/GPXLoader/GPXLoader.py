@@ -1,24 +1,27 @@
+from pathlib import Path
+from typing import Any
+
 import gpxpy
 from PySide6 import QtCore
 from PySide6.QtCore import QLineF
-from PySide6.QtGui import QColor, QPen
+from PySide6.QtGui import QColor, QPainter, QPen
 
 from osmapy.utils.Point import Point
 
 
 class GPXLoader:
-    def __init__(self, path):
-        """Class to manage GPX information.
+    """Class to manage and render GPX track information."""
+
+    def __init__(self, path: Path) -> None:
+        """Initialize GPXLoader by parsing a GPX file.
 
         Args:
             path (pathlib.Path): path to the gpx file
-
         """
-        self.points = []
+        self.points: list[Point] = []
         try:
             with open(path, "r", encoding="utf-8") as gpx_file:
                 gpx = gpxpy.parse(gpx_file)
-                self.points = []
                 for track in gpx.tracks:
                     for segment in track.segments:
                         for point in segment.points:
@@ -26,13 +29,13 @@ class GPXLoader:
                             self.points.append(pt)
         except Exception as e:
             # TODO error handling
-            print(e)
+            print("GPXLoader error:", e)
 
-    def draw(self, viewer, qpainter, alpha):
-        """Function to draw on a View.
+    def draw(self, viewer: Any, qpainter: QPainter, alpha: float) -> None:
+        """Function to draw GPX tracks on a View.
 
         Args:
-            viewer (Viewer): object which must is drawn on and which must be updated
+            viewer (Viewer): object which is drawn on and which must be updated
             qpainter (QPainter): object which is used to draw
             alpha (float): opacity to draw
         """

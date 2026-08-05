@@ -1,9 +1,10 @@
 from string import Template
+from typing import Any
 
 import numpy as np
 import requests
 from PySide6 import QtCore
-from PySide6.QtGui import QColor, QPen
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QMessageBox
 
 from osmapy.ElementsLoader import Node, Relation, Way
@@ -16,24 +17,31 @@ config = load_config()
 class ElementsLoader:
     """This class provides a loader for OSM elements from the OSM server."""
 
-    def __init__(self):
-        self.elements_copy = dict()
-        self.elements = dict()
-        self.headers = {"Accept": "application/json", "User-Agent": config.user_agent}
-        self.x_coords = []
-        self.y_coords = []
-        self.selected_node = None
-        self.new_node_counter = -1
-        self.new_elements_loaded = False
+    def __init__(self) -> None:
+        self.elements_copy: dict[int | str, Any] = {}
+        self.elements: dict[int | str, Any] = {}
+        self.headers: dict[str, str] = {
+            "Accept": "application/json",
+            "User-Agent": config.user_agent,
+        }
+        self.x_coords: list[float] = []
+        self.y_coords: list[float] = []
+        self.lons: np.ndarray | None = None
+        self.selected_node: int | str | None = None
+        self.new_node_counter: int = -1
+        self.new_elements_loaded: bool = False
 
-    def clear(self):
+    def clear(self) -> None:
         """Reset the elements dicts and the counter"""
         self.selected_node = None
         self.new_node_counter = -1
-        self.elements_copy = dict()
-        self.elements = dict()
+        self.elements_copy = {}
+        self.elements = {}
+        self.x_coords = []
+        self.y_coords = []
+        self.lons = None
 
-    def load(self, west, north, east, south):
+    def load(self, west: float, north: float, east: float, south: float) -> None:
         """This function loads all node, way, and relation elements from a given bounding box."""
         url = config.osm_api_url + "/api/0.6/map?bbox=${west},${north},${east},${south}"
         request = Template(url)
@@ -72,14 +80,14 @@ class ElementsLoader:
             box.setIcon(QMessageBox.Icon.Warning)
             box.exec()
 
-    def new_node(self, lat, lon):
+    def new_node(self, lat: float, lon: float) -> None:
         """Add new node to the elements list."""
         self.elements[self.new_node_counter] = Node.Node.create_new_node(
             self.new_node_counter, lat, lon
         )
         self.new_node_counter -= 1
 
-    def draw(self, viewer, qpainter, alpha):
+    def draw(self, viewer: Any, qpainter: QPainter, alpha: float) -> None:
         """Function to draw nodes and ways on a View."""
         qpainter.setOpacity(alpha)
 
@@ -128,11 +136,15 @@ class ElementsLoader:
                 / np.pi
                 * np.log(np.tan(np.pi / 4.0 + lats * (np.pi / 180.0) / 2.0))
             )
-            self.y_coords = y
-            self.x_coords = x
+            self.y_coords = y.tolist()
+            self.x_coords = x.tolist()
         else:
             x = np.array(self.x_coords)
             y = np.array(self.y_coords)
+
+        if len(x) == 0 or len(y) == 0:
+            self.new_elements_loaded = False
+            return
 
         xscreen = (
             (x - viewer.x) * viewer.scale_x + viewer.frameGeometry().width() / 2

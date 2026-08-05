@@ -1,4 +1,5 @@
 from functools import partial
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtWidgets import (
     QFormLayout,
@@ -10,42 +11,48 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+if TYPE_CHECKING:
+    from osmapy.ElementsLoader.Node import Node
+
 
 class ElementViewer(QWidget):
     """Widget which contains a TextEdit with the information of a selected OSM element."""
 
-    def __init__(self, parent):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__()
-        self.parent = parent
-        self.node = None
-        self.id = None
+        self.parent_widget: QWidget | None = parent
+        self.node: "Node" | None = None
+        self.id: int | str | None = None
 
         # Widgets
-        self.id_label = QLabel()
-        self.uid_label = QLabel()
-        self.user_label = QLabel()
-        self.version_label = QLabel()
-        self.changeset_label = QLabel()
-        self.timestamp_label = QLabel()
+        self.id_label: QLabel = QLabel()
+        self.uid_label: QLabel = QLabel()
+        self.user_label: QLabel = QLabel()
+        self.version_label: QLabel = QLabel()
+        self.changeset_label: QLabel = QLabel()
+        self.timestamp_label: QLabel = QLabel()
 
-        self.lat_edit = QLineEdit()
-        self.lon_edit = QLineEdit()
+        self.lat_edit: QLineEdit = QLineEdit()
+        self.lon_edit: QLineEdit = QLineEdit()
 
-        self.search_bar = QLineEdit()
-        self.tag_container = QWidget()
-        self.tag_layout = QFormLayout(self.tag_container)
+        self.search_bar: QLineEdit = QLineEdit()
+        self.tag_container: QWidget = QWidget()
+        self.tag_layout: QFormLayout = QFormLayout(self.tag_container)
 
-        self.add_tag_btn = QPushButton("Add Tag")
-        self.delete_node_btn = QPushButton("Delete Node")
+        self.add_tag_btn: QPushButton = QPushButton("Add Tag")
+        self.delete_node_btn: QPushButton = QPushButton("Delete Node")
 
         # Tag widgets map: key -> (button, value_edit)
-        self.tag_widgets = {}
+        self.tag_widgets: dict[str, tuple[QPushButton, QLineEdit]] = {}
+
+        self.default_label: QLabel = QLabel()
+        self.tags_header: QLabel = QLabel()
 
         self._build_layout()
         self._connect_signals()
         self._show_empty()
 
-    def _build_layout(self):
+    def _build_layout(self) -> None:
         layout = QFormLayout()
 
         # Default text
@@ -85,7 +92,7 @@ class ElementViewer(QWidget):
 
         self.setLayout(layout)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self.lat_edit.textChanged.connect(
             partial(self.modify_property, "lat", self.lat_edit)
         )
@@ -97,12 +104,12 @@ class ElementViewer(QWidget):
         self.add_tag_btn.clicked.connect(self.new_tag)
         self.delete_node_btn.clicked.connect(self.delete_node)
 
-    def _show_empty(self):
+    def _show_empty(self) -> None:
         self.default_label.setVisible(True)
         self._set_node_fields_visible(False)
         self._clear_tags()
 
-    def _set_node_fields_visible(self, visible: bool):
+    def _set_node_fields_visible(self, visible: bool) -> None:
         for w in (
             self.id_label,
             self.uid_label,
@@ -120,7 +127,7 @@ class ElementViewer(QWidget):
         ):
             w.setVisible(visible)
 
-    def set_node(self, node):
+    def set_node(self, node: "Node") -> None:
         """Update the viewer to show the given node."""
         self.node = node
         self.id = node.id
@@ -145,7 +152,7 @@ class ElementViewer(QWidget):
         tags = node.data["tags"]
         self._update_tags(tags)
 
-    def _clear_tags(self):
+    def _clear_tags(self) -> None:
         while self.tag_layout.count():
             item = self.tag_layout.takeAt(0)
             w = item.widget()
@@ -154,7 +161,7 @@ class ElementViewer(QWidget):
         self.tag_widgets.clear()
         self.tags_header.setText("Tags (0)")
 
-    def _update_tags(self, tags: dict):
+    def _update_tags(self, tags: dict[str, str]) -> None:
         self._clear_tags()
 
         if not tags:
@@ -165,7 +172,7 @@ class ElementViewer(QWidget):
         for key in sorted(tags.keys(), key=str.lower):
             self._add_tag_row(key, tags[key])
 
-    def _add_tag_row(self, key, value):
+    def _add_tag_row(self, key: str, value: str) -> None:
         key_btn = QPushButton(key)
         val_edit = QLineEdit(value)
 
@@ -176,7 +183,7 @@ class ElementViewer(QWidget):
 
         self.tag_widgets[key] = (key_btn, val_edit)
 
-    def filter_tags(self, query):
+    def filter_tags(self, query: str) -> None:
         """Dynamically show/hide tags based on search input."""
         query = query.lower()
         for key, (key_btn, val_edit) in self.tag_widgets.items():
@@ -185,19 +192,19 @@ class ElementViewer(QWidget):
             val_edit.setVisible(match)
             key_btn.setStyleSheet("background: #d0ffd0" if match else "")
 
-    def delete_node(self):
+    def delete_node(self) -> None:
         """Delete the currently selected node."""
-        if self.id is None:
+        if self.id is None or self.parent_widget is None:
             return
 
-        del self.parent.elements_loader.elements[self.id]
-        self.parent.elements_loader.selected_node = None
-        self.parent.viewer.update()
+        del self.parent_widget.elements_loader.elements[self.id]
+        self.parent_widget.elements_loader.selected_node = None
+        self.parent_widget.viewer.update()
         self._show_empty()
 
-    def modify_property(self, field, edit_widget, value):
+    def modify_property(self, field: str, edit_widget: QLineEdit, value: str) -> None:
         """Callback to change a node's property with typechecking."""
-        if self.id is None:
+        if self.id is None or self.parent_widget is None:
             return
 
         try:
@@ -208,33 +215,35 @@ class ElementViewer(QWidget):
                 raise ValueError("Longitude must be between -180 and 180")
 
             edit_widget.setStyleSheet("")
-            self.parent.elements_loader.elements[self.id].data[field] = parsed_value
-            self.parent.viewer.update()
+            self.parent_widget.elements_loader.elements[self.id].data[
+                field
+            ] = parsed_value
+            self.parent_widget.viewer.update()
 
         except ValueError:
             edit_widget.setStyleSheet("border: 2px solid red;")
 
-    def modify_tag(self, key, value):
+    def modify_tag(self, key: str, value: str) -> None:
         """Callback to modify a tag."""
-        if self.id is None:
+        if self.id is None or self.parent_widget is None:
             return
 
-        self.parent.elements_loader.elements[self.id].data["tags"][key] = value
-        self.parent.viewer.update()
+        self.parent_widget.elements_loader.elements[self.id].data["tags"][key] = value
+        self.parent_widget.viewer.update()
 
-    def remove_tag(self, key):
+    def remove_tag(self, key: str) -> None:
         """Remove a tag from an object."""
-        if self.id is None:
+        if self.id is None or self.parent_widget is None:
             return
 
-        tags = self.parent.elements_loader.elements[self.id].data["tags"]
+        tags = self.parent_widget.elements_loader.elements[self.id].data["tags"]
         if key in tags:
             del tags[key]
             self._update_tags(tags)
 
-    def new_tag(self):
+    def new_tag(self) -> None:
         """Ask user for key and value of the new tag and create it."""
-        if self.id is None:
+        if self.id is None or self.parent_widget is None:
             return
 
         key, ok = QInputDialog.getText(self, "New Tag", "Key")
@@ -246,7 +255,7 @@ class ElementViewer(QWidget):
             QMessageBox.warning(self, "Invalid key", "Tag keys cannot contain spaces")
             return
 
-        tags = self.parent.elements_loader.elements[self.id].data["tags"]
+        tags = self.parent_widget.elements_loader.elements[self.id].data["tags"]
         if key in tags:
             QMessageBox.warning(self, "Duplicate", "Tag already exists")
             return

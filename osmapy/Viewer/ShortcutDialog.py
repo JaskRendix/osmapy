@@ -5,13 +5,14 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 
 class ShortcutDialog(QDialog):
     """Dialog showing available keyboard shortcuts and controls."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super(ShortcutDialog, self).__init__(parent)
         self.setWindowTitle("Keyboard Shortcuts")
         self.resize(450, 350)

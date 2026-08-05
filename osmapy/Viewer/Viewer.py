@@ -1,11 +1,20 @@
 import webbrowser
 from importlib import resources
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from PySide6 import QtCore
-from PySide6.QtGui import QColor, QPainter, QPen, QUndoStack
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtGui import (
+    QColor,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QUndoStack,
+    QWheelEvent,
+)
+from PySide6.QtWidgets import QApplication, QDialog, QUndoView
 
 from osmapy.GPXLoader.GPXLoader import GPXLoader
 from osmapy.TileLoader import Tile, TileLoader
@@ -19,40 +28,40 @@ config = load_config()
 class Viewer(QDialog):
     """Viewer widget where the map is shown with the slippy tiles in the background and OSM objects."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Any | None = None) -> None:
         super(Viewer, self).__init__()
 
-        self.tile_loaders = []
+        self.tile_loaders: list[Any] = []
         for config_id in range(len(config.slippy_tiles)):
             self.tile_loaders.append(TileLoader.TileLoader(self, config_id))
-        self.parent = parent
-        self.element_viewer = self.parent.element_viewer
+        self.parent: Any | None = parent
+        self.element_viewer: Any = self.parent.element_viewer
 
-        self.lat = config.start_latitude
-        self.lon = config.start_longitude
-        self.zoom = config.start_zoom
+        self.lat: float = config.start_latitude
+        self.lon: float = config.start_longitude
+        self.zoom: int = config.start_zoom
         self.x, self.y = calc.deg2xy(self.lat, self.lon)
 
         # scale
         tile = Tile.Tile(self.lat, self.lon, self.zoom)
-        self.scale_x = config.image_size / tile.width_x
-        self.scale_y = config.image_size / tile.width_y
+        self.scale_x: float = config.image_size / tile.width_x
+        self.scale_y: float = config.image_size / tile.width_y
 
-        self.click = False
+        self.click: bool = False
 
-        self.elements_loader = self.parent.elements_loader
+        self.elements_loader: Any = self.parent.elements_loader
 
         for tile_loader in self.tile_loaders:
             self.destroyed.connect(tile_loader.close)
 
         error_path = resources.files("osmapy.assets") / "error.png"
-        self.asset_error_image = str(error_path)
+        self.asset_error_image: str = str(error_path)
 
-        self.osm_copyright = OSMCopyright()
+        self.osm_copyright: OSMCopyright = OSMCopyright()
 
         self.setAcceptDrops(True)  # allow file dropping
 
-        self.layers = self.parent.layer_manager
+        self.layers: Any = self.parent.layer_manager
         for config_id, tile_loader in enumerate(self.tile_loaders):
             self.layers.add_layer(
                 tile_loader,
@@ -61,11 +70,13 @@ class Viewer(QDialog):
             )
         self.layers.add_layer(self.elements_loader, "OSM Nodes")
 
-        self.mode = "normal"  # mode for clicking events
+        self.mode: str = "normal"  # mode for clicking events
 
-        self.undo_stack = QUndoStack(self)
+        self.undo_stack: QUndoStack = QUndoStack(self)
+        self.undo_view = QUndoView(self.undo_stack)
+        self.undo_view.setWindowTitle("Command History")
 
-    def set_deg(self, lat, lon):
+    def set_deg(self, lat: float, lon: float) -> None:
         """Set center of the view.
 
         Args:
@@ -77,7 +88,7 @@ class Viewer(QDialog):
         self.x, self.y = calc.deg2xy(self.lat, self.lon)
         self.set_zoom(self.zoom)
 
-    def set_xy(self, x, y):
+    def set_xy(self, x: float, y: float) -> None:
         """Set center of the view.
 
         Args:
@@ -89,7 +100,7 @@ class Viewer(QDialog):
         self.lat, self.lon = calc.xy2deg(self.x, self.y)
         self.set_zoom(self.zoom)
 
-    def set_zoom(self, zoom):
+    def set_zoom(self, zoom: int) -> None:
         """Set zoom level of the view.
 
         Args:
@@ -103,7 +114,7 @@ class Viewer(QDialog):
         self.scale_x = config.image_size / tile.width_x
         self.scale_y = config.image_size / tile.width_y
 
-    def screen2xy(self, xscreen, yscreen):
+    def screen2xy(self, xscreen: float, yscreen: float) -> tuple[float, float]:
         """Convert from screen coordinates to mercator coordinates.
 
         Args:
@@ -124,7 +135,7 @@ class Viewer(QDialog):
 
         return xscreen, yscreen
 
-    def xy2screen(self, x, y):
+    def xy2screen(self, x: float, y: float) -> tuple[float, float]:
         """Convert mercator x and y to screen coordinates.
 
         Args:
@@ -138,7 +149,7 @@ class Viewer(QDialog):
         yscreen = -(y - self.y) * self.scale_y + self.frameGeometry().height() / 2
         return xscreen, yscreen
 
-    def paintEvent(self, event):
+    def paintEvent(self, event: Any) -> None:
         """This is triggered on every update. All the connected layers are drawn here. Also the copyright information
         is added here.
 
@@ -164,7 +175,7 @@ class Viewer(QDialog):
         # draw OSM information
         self.osm_copyright.draw(self, qpainter)
 
-    def wheelEvent(self, event):
+    def wheelEvent(self, event: QWheelEvent) -> None:
         """Callback when the mouse wheel is used. Here the zooming is realized.
 
         Args:
@@ -180,7 +191,7 @@ class Viewer(QDialog):
                 self.set_zoom(self.zoom - 1)
                 self.update()
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """Callback when the mouse is moved. Here the dragging of the map is realized.
 
         Args:
@@ -197,13 +208,13 @@ class Viewer(QDialog):
                 set_x = self.start_x - moved.x() / self.scale_x
                 set_y = self.start_y + moved.y() / self.scale_y
 
-                set_x = np.clip(set_x, -179.999999, 179.999999)
-                set_y = np.clip(set_y, -179.999999, 179.999999)
+                set_x = float(np.clip(set_x, -179.999999, 179.999999))
+                set_y = float(np.clip(set_y, -179.999999, 179.999999))
 
                 self.set_xy(set_x, set_y)
                 self.update()
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         """Callback when the mouse is released. This is needed to realize the dragging.
 
         Args:
@@ -211,7 +222,7 @@ class Viewer(QDialog):
         """
         self.click = False
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         """Callback when the mouse is clicked. This is use to react on a click on the OSM copyright, select a node
         or create a new node.
 
@@ -279,7 +290,7 @@ class Viewer(QDialog):
                 self.update()
                 self.change_mode("normal")
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event: Any) -> None:
         """This callback is fired when something is dragged above the view. It is shown to the user that this is
         accepted to allow dropping GPX files.
 
@@ -289,7 +300,7 @@ class Viewer(QDialog):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event: Any) -> None:
         """Event when something is dropped into the view. This is used to read GPX files.
 
         Args:
@@ -300,7 +311,7 @@ class Viewer(QDialog):
 
         self.update()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         """Callback for keypress events. This is used to move the selected object around. this scales with the zoom
         level.
 
@@ -340,7 +351,7 @@ class Viewer(QDialog):
         if event.key() == QtCore.Qt.Key.Key_F5:
             self.reload_tiles()
 
-    def load_elements(self):
+    def load_elements(self) -> None:
         """Start loading OSM elements from the api which belong in the current map view."""
         left, top = self.screen2xy(0, 0)
         right, bottom = self.screen2xy(
@@ -352,14 +363,14 @@ class Viewer(QDialog):
 
         self.update()
 
-    def undo_changes(self):
+    def undo_changes(self) -> None:
         """Undo the changes of the nodes."""
         self.parent.element_viewer.clear()
         self.parent.elements_loader.clear()
         self.update()
         self.load_elements()
 
-    def change_mode(self, mode):
+    def change_mode(self, mode: str) -> None:
         """Changes what happens when the mouse is clicked in the view. Also changes the cursor style.
 
         Args:
@@ -373,10 +384,10 @@ class Viewer(QDialog):
             QApplication.restoreOverrideCursor()
         self.mode = mode
 
-    def reload_tiles(self):
+    def reload_tiles(self) -> None:
         """Force a reload/refresh of all active slippy tile loaders and update the viewer."""
         for tile_loader in self.tile_loaders:
-            # Clear any internal tile cache queues if available, or trigger a re-request
-            pass
+            if hasattr(tile_loader, "clear"):
+                tile_loader.clear()
         self.load_elements()
         self.update()

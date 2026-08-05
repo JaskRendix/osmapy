@@ -142,3 +142,13 @@ def test_close_saves_database(tile_loader):
 
     db_path = tile_loader.path_cache / "database.json"
     assert db_path.is_file()
+
+
+def test_clear_resets_cache(tile_loader):
+    tile_loader.cache_json["10_500_300"] = {"state": "loaded", "time": 123456789}
+    tile_loader.clear()
+
+    assert len(tile_loader.cache_json) == 0
+
+    reloaded = tile_loader.load_cache_json()
+    assert len(reloaded) == 0
